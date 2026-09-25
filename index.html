@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SF6 Buckler Review Logger v2</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0b1018;--panel:#121a25;--panel2:#172231;--line:#2d3a4d;--text:#eef4fb;--muted:#9fb0c5;
+  --accent:#62d6cf;--accent2:#8aa8ff;--good:#79df9f;--bad:#ff8e8e;--warn:#ffd27d;--chip:#243246;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP","Yu Gothic",sans-serif;line-height:1.55}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+.app{max-width:1180px;margin:0 auto;padding:26px 18px 80px}
+.header{display:flex;gap:18px;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
+.header h1{margin:0;font-size:28px;line-height:1.25}
+.header p{margin:8px 0 0;color:var(--muted);font-size:14px}
+.badge{white-space:nowrap;background:#173037;border:1px solid #2f6666;color:#b8fff6;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:9px 13px}
+.tab.active{background:#203340;border-color:#4c8c8a;color:#d9fffb}
+.view{display:none}.view.active{display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+.panel h2,.panel h3{margin-top:0}
+.grid{display:grid;gap:12px}.grid.cols2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cols3{grid-template-columns:repeat(3,minmax(0,1fr))}
+label.field{display:block;color:var(--muted);font-size:13px}
+label.field input,label.field textarea,label.field select{display:block;width:100%;margin-top:6px}
+input,textarea,select{background:#0d1520;border:1px solid #34445b;color:var(--text);border-radius:9px;padding:10px 11px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:#5ab7b0;box-shadow:0 0 0 2px rgba(98,214,207,.12)}
+textarea{min-height:180px;resize:vertical}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.btn{border:1px solid #3a4c64;background:#1a2738;color:var(--text);border-radius:9px;padding:9px 13px}
+.btn.primary{background:#1c4b4b;border-color:#4b9691;color:#ecfffd;font-weight:700}.btn.danger{border-color:#75434a;background:#351f25;color:#ffd5d8}.btn.ghost{background:transparent}
+.small{font-size:12px;color:var(--muted)}
+.notice{background:#10252b;border:1px solid #2c5b63;color:#cfeff2;border-radius:9px;padding:10px 12px;margin:10px 0}
+.error{background:#301d23;border:1px solid #72444d;color:#ffd6da}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:13px}.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--muted)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}.filters select,.filters input{width:auto;min-width:130px}
+.quick-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.quick-btn{border:1px solid #33465d;background:#132030;color:var(--text);border-radius:11px;padding:12px;text-align:left;min-height:58px}.quick-btn:hover{border-color:#5ab7b0;background:#173033}.quick-btn b{display:block;font-size:13px}.quick-status{min-height:22px;margin-top:10px;color:var(--good);font-size:13px}.quick-list{display:grid;gap:7px;margin-top:12px}.quick-item{display:flex;gap:10px;justify-content:space-between;align-items:center;background:#0f1824;border:1px solid #2d3d52;border-radius:9px;padding:8px 10px;font-size:12px}.quick-item.pending{border-left:3px solid var(--warn)}.quick-item.linked{border-left:3px solid var(--good)}
+.battle-list{display:grid;gap:14px}.encounter{background:#0e1621;border:1px solid #314056;border-radius:15px;overflow:hidden}.encounter-head{padding:14px 15px;background:#172334;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.encounter-title{font-size:17px;font-weight:800}.encounter-meta{font-size:12px;color:var(--muted)}.encounter-battles{display:grid;gap:9px;padding:10px}.encounter .battle{margin:0}.battle-toggle{border:0;background:transparent;color:var(--accent);padding:0;font-size:12px}.quick-source{color:var(--good);font-size:11px}
+.battle{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.battle.win{border-left:4px solid var(--good)}.battle.lose{border-left:4px solid var(--bad)}
+.battle-head{padding:13px 14px;background:#101823;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.battle-title{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.result{font-weight:800}.result.win{color:var(--good)}.result.lose{color:var(--bad)}
+.mr{color:#c9d8ea;font-size:13px}.delta.plus{color:var(--good)}.delta.minus{color:var(--bad)}.delta.unknown{color:var(--muted)}
+.battle-body{padding:14px}
+.question{font-weight:750;margin-bottom:10px}
+.radio-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.choice{display:flex;align-items:flex-start;gap:8px;background:#121d2a;border:1px solid #2e3c50;border-radius:9px;padding:9px 10px;cursor:pointer;font-size:13px}.choice:has(input:checked){border-color:#63bdb7;background:#173033}.choice input{margin-top:2px}
+.detail{margin-top:12px;padding:12px;background:#0e1722;border:1px dashed #39506a;border-radius:10px}.detail[hidden]{display:none}
+.subchoices{display:flex;flex-wrap:wrap;gap:7px}.subchoice{display:flex;gap:6px;align-items:center;background:#1a2737;border:1px solid #36475c;border-radius:999px;padding:6px 9px;font-size:12px;cursor:pointer}.subchoice:has(input:checked){background:#23423f;border-color:#5bb4ad}
+.matchup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px}.matchup-item{display:flex;gap:7px;align-items:flex-start;background:#17202e;border:1px solid #324256;padding:8px;border-radius:8px;font-size:12px}.matchup-item:has(input:checked){border-color:#8aa8ff;background:#202b49}
+.memo-row{margin-top:10px}.memo-toggle{font-size:12px;padding:6px 9px}.memo{min-height:72px;margin-top:8px;width:100%}
+.review-status{font-size:12px;color:var(--muted)}
+.summary-table{width:100%;border-collapse:collapse}.summary-table th,.summary-table td{border-bottom:1px solid var(--line);padding:9px;text-align:left;font-size:13px}.summary-table th{color:#cfe2f5}.summary-table td.num{text-align:right}
+canvas{width:100%;height:260px;background:#0d1520;border:1px solid var(--line);border-radius:10px}
+.prompt-box{min-height:340px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px}
+.empty{text-align:center;color:var(--muted);padding:30px 10px}
+.chip{display:inline-block;background:var(--chip);border:1px solid #3a4d66;border-radius:999px;padding:3px 8px;font-size:11px;color:#d6e2f0}
+.footer-note{color:var(--muted);font-size:12px;margin-top:16px}
+@media(max-width:850px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.radio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.cols2,.grid.cols3{grid-template-columns:1fr}.matchup-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.app{padding:18px 10px 60px}.header{display:block}.badge{display:inline-block;margin-top:10px}.radio-grid,.quick-grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.battle-head{align-items:flex-start}.battle-title{display:block}.battle-title>*{margin-right:6px}.filters select,.filters input{width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>SF6 Buckler Review Logger</h1>
+      <p>対戦直後は1タップだけ。あとでBucklerのBATTLE LOGを貼ると試合へ自動紐付けし、MR推移とAI分析用プロンプトまでまとめる。</p>
+    </div>
+    <div class="badge">v2 / LOCAL STORAGE</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-view="quick">対戦直後メモ</button>
+    <button class="tab" data-view="import">ログ取込</button>
+    <button class="tab" data-view="review">試合レビュー</button>
+    <button class="tab" data-view="stats">履歴・集計</button>
+    <button class="tab" data-view="prompt">ChatGPT用コピー</button>
+    <button class="tab" data-view="settings">設定・バックアップ</button>
+  </div>
+
+  <section class="view active" id="view-quick">
+    <div class="panel">
+      <h2>対戦直後メモ</h2>
+      <p class="small">試合が終わった直後に「一番困ったこと」を1回タップ。相手名・勝敗・MRは入力不要です。後でBucklerログを取り込むと、時刻が近い試合へ自動で紐付けます。</p>
+      <div id="quickButtons" class="quick-grid"></div>
+      <div id="quickStatus" class="quick-status"></div>
+      <div id="quickSub" class="detail" hidden></div>
+      <div class="actions">
+        <button class="btn ghost" id="undoQuickBtn">直前のメモを取り消す</button>
+        <span class="small">対空などは、保存後に任意で1段だけ補足できます。</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>直近の対戦直後メモ</h3>
+      <div id="quickList" class="quick-list"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-import">
+    <div class="panel">
+      <h2>Bucklerログ取込</h2>
+      <div class="grid cols3">
+        <label class="field">自分のBuckler名
+          <input id="playerName" value="" autocomplete="off">
+        </label>
+        <label class="field">現在MR（任意）
+          <input id="currentMr" type="number" min="0" step="1" placeholder="例: 1219">
+        </label>
+        <label class="field">現在の重点課題（任意）
+          <input id="currentFocus" placeholder="例: 自分からの空振りを減らす">
+        </label>
+      </div>
+      <label class="field" style="margin-top:12px">BATTLE LOGをページごとコピーして貼り付け
+        <textarea id="bucklerText" placeholder="BATTLE LOG&#10;FG/BH&#10;...&#10;2026/09/25 17:16&#10;..."></textarea>
+      </label>
+      <div class="actions">
+        <button class="btn primary" id="parseBtn">解析して保存</button>
+        <button class="btn" id="clearPasteBtn">貼り付け欄を空にする</button>
+        <span class="small">同じ試合を再取込しても重複登録しません。既存レビューは保持します。</span>
+      </div>
+      <div id="importResult"></div>
+    </div>
+
+    <div class="panel">
+      <h3>このツールの記録単位</h3>
+      <p class="small">各試合につき「その試合で一番困ったこと」を最大1つ。対戦直後メモがあれば自動で試合へ紐付けます。レビュー画面では同じ対戦相手との連戦をひとまとまりで表示します。</p>
+    </div>
+  </section>
+
+  <section class="view" id="view-review">
+    <div class="stats" id="quickStats"></div>
+    <div class="filters panel">
+      <select id="reviewFilter">
+        <option value="all">すべて</option>
+        <option value="unreviewed">未レビューのみ</option>
+        <option value="lose">負け試合のみ</option>
+        <option value="reviewed">レビュー済みのみ</option>
+      </select>
+      <select id="charFilter"><option value="">相手キャラ：すべて</option></select>
+      <select id="countFilter">
+        <option value="10">直近10試合</option>
+        <option value="20">直近20試合</option>
+        <option value="50">直近50試合</option>
+        <option value="9999">全履歴</option>
+      </select>
+      <button class="btn" id="jumpLatestImport">今回追加分だけ見る</button>
+    </div>
+    <div id="battleList" class="battle-list"></div>
+  </section>
+
+  <section class="view" id="view-stats">
+    <div class="stats" id="historyStats"></div>
+    <div class="panel">
+      <h2>MR推移</h2>
+      <canvas id="mrChart" width="1100" height="260"></canvas>
+      <p class="small">Bucklerに表示された試合開始時MRを線で表示。各試合のMR増減は、同じ取込ページ内の次試合MRまたは「現在MR」から推定します。</p>
+    </div>
+    <div class="grid cols2">
+      <div class="panel"><h3>困ったこと集計</h3><div id="categorySummary"></div></div>
+      <div class="panel"><h3>相手キャラ別</h3><div id="matchupSummary"></div></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-prompt">
+    <div class="panel">
+      <h2>ChatGPT用プロンプト</h2>
+      <div class="grid cols3">
+        <label class="field">対象
+          <select id="promptScope">
+            <option value="latestNew">今回の新規追加分</option>
+            <option value="last5reviewed">直近レビュー済み5試合</option>
+            <option value="last10reviewed">直近レビュー済み10試合</option>
+            <option value="last10all">直近10試合（未レビュー含む）</option>
+          </select>
+        </label>
+        <label class="field">分析の重点
+          <select id="promptMode">
+            <option value="one">次に直す1点を決める</option>
+            <option value="compare">前回課題との差分を見る</option>
+            <option value="matchup">キャラ対の困りごとを整理する</option>
+          </select>
+        </label>
+        <div class="field">&nbsp;
+          <button class="btn primary" id="generatePromptBtn" style="width:100%;display:block">生成</button>
+        </div>
+      </div>
+      <textarea id="promptOutput" class="prompt-box" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn primary" id="copyPromptBtn">クリップボードにコピー</button>
+        <span id="copyStatus" class="small"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-settings">
+    <div class="panel">
+      <h2>設定</h2>
+      <div class="grid cols2">
+        <label class="field">自分のBuckler名
+          <input id="settingsPlayerName" autocomplete="off">
+        </label>
+        <label class="field">現在の重点課題
+          <input id="settingsCurrentFocus" placeholder="AI用プロンプトに入ります">
+        </label>
+      </div>
+      <div class="actions"><button class="btn primary" id="saveSettingsBtn">設定を保存</button></div>
+    </div>
+    <div class="panel">
+      <h2>バックアップ</h2>
+      <p class="small">ブラウザ側のlocalStorageに全履歴・レビューを保存します。ファイルを移動したりブラウザを変えたりする場合に備えて、たまにJSONを書き出してください。</p>
+      <div class="actions">
+        <button class="btn" id="exportBtn">JSONを書き出す</button>
+        <label class="btn" style="display:inline-block">JSONを読み込む<input id="importJsonInput" type="file" accept="application/json" hidden></label>
+        <button class="btn danger" id="resetBtn">全データ削除</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>データ仕様</h3>
+      <div class="small">保存対象：対戦直後メモ / Buckler原文から抽出した日時 / プレイヤー名 / キャラ / MR / 勝敗 / 推定MR差 / 各試合レビュー / キャラ固有項目 / 任意メモ / 取込履歴。外部送信はしません。</div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const STORAGE_KEY = 'sf6_buckler_review_logger_v1';
+
+  const CATEGORIES = [
+    ['pressed_crushed','技を出そうとして潰された'],
+    ['whiff_punished','空振りを差し返された'],
+    ['low_hit','中足・下段に被弾した'],
+    ['jump_hit','飛びを通してしまった'],
+    ['projectile_hit','弾を被弾しすぎた'],
+    ['projectile_jump','自分の弾を飛ばれて、大きく被弾した'],
+    ['di_hit','インパクトを食らった'],
+    ['throw_hit','投げをたくさんもらった'],
+    ['input_combo','コンボ・入力ミスをした'],
+    ['offense_failed','自分の起き攻めがうまくいかなかった'],
+    ['wake_defense','起き上がりの守り・切り返しで損した'],
+    ['takeback','焦って攻め直し、さらに被弾した'],
+    ['matchup','相手の特定の技・連係に困った'],
+    ['no_big_issue','特に大きな問題なし'],
+    ['unknown','何が悪かったか分からない']
+  ];
+
+  const SUB_OPTIONS = {
+    jump_hit: [
+      ['no_response','反応できず何も出なかった'],
+      ['input_fail','対空しようとしたが入力不成立'],
+      ['move_lost','対空技は出たが空振り・負けた'],
+      ['committed','直前の行動中で対空できなかった'],
+      ['guarded','ガードを選んだ'],
+      ['unknown','よく分からない']
+    ],
+    wake_defense: [
+      ['reversal_blocked','無敵技・SAをガードされて反撃された'],
+      ['mash_crushed','小技などで暴れて潰された'],
+      ['tech_baited','投げ抜けを誘われて殴られた'],
+      ['looped','打撃・投げを受け続け、抜け出せなかった'],
+      ['unknown','よく分からない']
+    ],
+    takeback: [
+      ['rush_special','突進・生ラッシュで突っ込み直した'],
+      ['jump_di','飛び・インパクトで一発を狙った'],
+      ['reversal_sa','無敵技・SAで無理にターンを取ろうとした'],
+      ['other','その他']
+    ]
+  };
+
+  // これは「正解のキャラ対表」ではなく、試合後に思い出しやすくする候補。
+  // ユーザー本人が現在意識している内容を優先し、不明なキャラは広めの候補に留める。
+  const MATCHUP_ISSUES = {
+    'リュウ':['大ゴス(鳩尾砕き)後に暴れて被弾した','上段足刀蹴りに確定反撃を取れなかった','波動拳を被弾しすぎた','飛びを通した'],
+    'ルーク':['サンドブラストを被弾しすぎた','中足ラッシュで崩された','生ラッシュ・前進を止められなかった'],
+    'ジェイミー':['酒飲みを止められなかった','無影蹴・飛び込みを通した','前進技や固めに触られ続けた'],
+    '春麗':['気功拳を被弾しすぎた','覇山蹴(弾抜け気味の中段)を食らった','空中百裂脚など空中からの攻めを通した'],
+    'ガイル':['ソニックブームを被弾しすぎた','ソニックを飛んでサマーソルトキックに落とされた','端まで押されて抜けられなかった'],
+    'キンバリー':['彩隠形(ワープ)を咎められなかった','疾駆けからの派生で崩された','空中からの軌道変化・肘落としを通した'],
+    'ジュリ':['前ステ投げを通され続けた','疾空閃など空中からの攻めを通した','中足ラッシュで崩された'],
+    'ケン':['迅雷脚の派生で崩された','龍尾脚への対応を失敗した','端の柔道で崩された'],
+    'ブランカ':['アマゾンリバーラン(ズサー)を食らった','ローリングアタックへの対応を失敗した','コマンド投げ・奇襲投げを食らった'],
+    'ダルシム':['ヨガテレポートを咎められなかった','ヨガファイア・アーチで近づけなかった','ドリルキックを通した'],
+    'E.本田':['スーパー頭突きを食らい続けた','百貫落としへの対応を失敗した','コマンド投げを食らった'],
+    'ディージェイ':['エアスラッシャーを被弾しすぎた','ジョスクール・派生で崩された','ニーショット・飛び込みを通した'],
+    'マノン':['コマンド投げを飛べなかった','起き攻めの中段・下段択で崩された','メダルを溜められて投げの圧に負けた'],
+    'マリーザ':['ファランクスを対空・迎撃できなかった','グラディウスに被弾・カウンターを取られた','スクトゥムからの択で崩された'],
+    'JP':['コマンド投げを飛べなかった','ワープ後にパリィして投げられた','設置・トリグラフ・弾で近づけなかった','ODアムネジアへの対応で損した'],
+    'ザンギエフ':['シベリアンエクスプレスを飛べなかった','スクリューパイルドライバーなどコマンド投げを食らった','起き攻めの打撃・投げ択で崩された'],
+    'リリー':['風ありコンドルスパイア後の攻めで崩された','コマンド投げを食らった','風溜めを許しすぎた'],
+    'キャミィ':['アクセルスピンナックルを食らった','技を振ったところを潰された・差し返された','中足ラッシュ・投げで崩された'],
+    'ラシード':['ワールウインドショット・風を絡めた攻めに対応できなかった','イウサール(SA2)中の攻めで崩された','端の連係から抜けられなかった'],
+    'A.K.I.':['毒状態からの連係で大きく減らされた','蛇頭鞭など長い爪に触られ続けた','奇襲・潜り込みに対応できなかった'],
+    'エド':['サイコフリッカーで触られ続けた','前進・キルステップ系の攻めに対応できなかった','溜めフリッカー・弾への対応を失敗した'],
+    '豪鬼':['百鬼襲を通した','朧を食らった・パリィして投げられた','波動拳を被弾しすぎた','斬空波動拳を被弾した','飛びを対空できなかった','立強Kを食らった・しゃがみガード後に反撃できなかった'],
+    'ベガ':['シャドウライズ・派生を通した','サイコクラッシャーなど突進への対応を失敗した','デビルリバースなど空中軌道変化を通した'],
+    'テリー':['クイックバーン2段目に立てなかった','バーンナックルを食らった・間合い対応を失敗した','生ラッシュ・中攻撃で押し込まれた'],
+    '舞':['花蝶扇を被弾しすぎた','突進・接近技で触られ続けた','空中・中段の攻めで崩された'],
+    'エレナ':['リンクシング・派生に対応できなかった','長い地上技に触られ続けた','回復・SA周りで損した'],
+    'サガット':['タイガーニーを被弾した','立中Pなど有利技後に暴れてカウンターを食らった','タイガーショットを被弾しすぎた'],
+    'C.ヴァイパー':['バーニングキックなど空中軌道変化を通した','サンダーナックル系の接近に対応できなかった','フェイント・キャンセル連係で崩された'],
+    'アレックス':['コマンド投げを食らいすぎた','弾抜け・突進技を通した','ブレイカースタンスからの派生で崩された'],
+    'イングリッド':['サンバニッシュ(ワープ)を咎められなかった','ビーム・遠距離技を被弾しすぎた','飛び道具を被弾しすぎた'],
+    'ヤスミン':['生ラッシュ中段を食らった','手裏剣(パンギル・サ・リクラン)後の攻めでお仕置きされた','高速接近・派生に対応できなかった']
+  };
+
+  const CHAR_ALIASES = {
+    'RYU':'リュウ','LUKE':'ルーク','JAMIE':'ジェイミー','CHUN-LI':'春麗','GUILE':'ガイル','KIMBERLY':'キンバリー','JURI':'ジュリ','KEN':'ケン','BLANKA':'ブランカ','DHALSIM':'ダルシム',
+    'E.HONDA':'E.本田','E. HONDA':'E.本田','DEE JAY':'ディージェイ','MANON':'マノン','MARISA':'マリーザ','JP':'JP','ZANGIEF':'ザンギエフ','LILY':'リリー','CAMMY':'キャミィ',
+    'RASHID':'ラシード','A.K.I.':'A.K.I.','ED':'エド','GOUKI':'豪鬼','VEGA':'ベガ','TERRY':'テリー','MAI':'舞','ELENA':'エレナ','SAGAT':'サガット','C.VIPER':'C.ヴァイパー','C. VIPER':'C.ヴァイパー',
+    'ALEX':'アレックス','INGRID':'イングリッド','YASMINE':'ヤスミン'
+  };
+
+  const DEFAULT_STATE = () => ({
+    version:2,
+    settings:{playerName:'',currentFocus:''},
+    battles:{},
+    imports:[],
+    quickNotes:[],
+    latestImportId:null
+  });
+
+  let state = loadState();
+  let latestImportOnly = false;
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return DEFAULT_STATE();
+      const parsed = JSON.parse(raw);
+      return Object.assign(DEFAULT_STATE(), parsed, {version:2,settings:Object.assign(DEFAULT_STATE().settings, parsed.settings||{}),quickNotes:Array.isArray(parsed.quickNotes)?parsed.quickNotes:[]});
+    }catch(e){ console.warn(e); return DEFAULT_STATE(); }
+  }
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+  function nowId(prefix='id'){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
+  function hash(str){let h=2166136261;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}return (h>>>0).toString(36);}
+  function canonicalChar(name){const n=(name||'').trim(); return CHAR_ALIASES[n.toUpperCase()] || CHAR_ALIASES[n] || n;}
+  function parseDateText(s){const m=s.match(/^(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})$/);if(!m)return 0;return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5]).getTime();}
+  function fmtDate(ts){if(!ts)return'';const d=new Date(ts);return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+
+  function timeOnly(ts){const d=new Date(ts);return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;}
+
+  function addQuickNote(category){
+    const q={id:nowId('q'),createdAt:Date.now(),category,sub:null,note:'',linkedBattleId:null};
+    state.quickNotes.push(q);saveState();renderQuickCapture();
+    $('quickStatus').textContent=`${categoryLabel(category)} を保存しました。`;
+    if(SUB_OPTIONS[category]) renderQuickSub(q); else {$('quickSub').hidden=true;$('quickSub').innerHTML='';}
+    setTimeout(()=>{if($('quickStatus').textContent.includes('保存しました'))$('quickStatus').textContent='';},1800);
+  }
+
+  function renderQuickSub(q){
+    const subs=SUB_OPTIONS[q.category]||[];
+    if(!subs.length){$('quickSub').hidden=true;return;}
+    $('quickSub').hidden=false;
+    $('quickSub').innerHTML=`<strong>補足（今なら任意）</strong><div class="subchoices" style="margin-top:8px">${subs.map(([code,label])=>`<button class="btn ghost" data-quick-sub="${esc(code)}" data-qid="${esc(q.id)}">${esc(label)}</button>`).join('')}</div>`;
+  }
+
+  function setQuickSub(qid,sub){
+    const q=state.quickNotes.find(x=>x.id===qid);if(!q)return;q.sub=sub;saveState();renderQuickCapture();$('quickSub').hidden=true;$('quickStatus').textContent='補足も保存しました。';setTimeout(()=>$('quickStatus').textContent='',1400);
+  }
+
+  function undoQuick(){
+    const pending=state.quickNotes.filter(q=>!q.linkedBattleId).sort((a,b)=>b.createdAt-a.createdAt)[0];
+    if(!pending){$('quickStatus').textContent='取り消せる未紐付けメモはありません。';return;}
+    state.quickNotes=state.quickNotes.filter(q=>q.id!==pending.id);saveState();renderQuickCapture();$('quickSub').hidden=true;$('quickStatus').textContent='直前のメモを取り消しました。';
+  }
+
+  function deleteQuick(qid){
+    const q=state.quickNotes.find(x=>x.id===qid);if(!q)return;
+    if(q.linkedBattleId && state.battles[q.linkedBattleId]?.review?.sourceQuickId===qid){
+      const r=state.battles[q.linkedBattleId].review;r.sourceQuickId=null;
+    }
+    state.quickNotes=state.quickNotes.filter(x=>x.id!==qid);saveState();renderAll();
+  }
+
+  function renderQuickCapture(){
+    $('quickButtons').innerHTML=CATEGORIES.map(([code,label],idx)=>`<button class="quick-btn" data-quick-cat="${code}"><b>${idx+1}. ${esc(label)}</b></button>`).join('');
+    const qs=state.quickNotes.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0,8);
+    $('quickList').innerHTML=qs.length?qs.map(q=>{const b=q.linkedBattleId?state.battles[q.linkedBattleId]:null;return `<div class="quick-item ${b?'linked':'pending'}"><div><strong>${timeOnly(q.createdAt)}</strong> ${esc(categoryLabel(q.category))}${q.sub?` / ${esc(subLabel(q.category,q.sub))}`:''}<br><span class="small">${b?`紐付け済み: ${esc(b.opponentName)} / ${esc(b.opponentChar)} / ${esc(b.result)}`:'Buckler取込待ち'}</span></div><button class="btn ghost" data-delete-quick="${esc(q.id)}">削除</button></div>`}).join(''):'<div class="empty">まだ対戦直後メモはありません。</div>';
+  }
+
+  function linkPendingQuickNotes(candidateIds){
+    const pending=state.quickNotes.filter(q=>!q.linkedBattleId).sort((a,b)=>a.createdAt-b.createdAt);
+    const candidates=(candidateIds||[]).map(id=>state.battles[id]).filter(Boolean).filter(b=>!isReviewed(b)).sort((a,b)=>a.timestamp-b.timestamp);
+    const used=new Set();let linked=0;
+    for(const q of pending){
+      let best=null,bestDiff=Infinity;
+      for(const b of candidates){
+        if(used.has(b.id))continue;
+        // Buckler時刻は試合開始/記録時刻で、対戦直後メモより数分前になる想定。前後12分を許容。
+        const diff=Math.abs(q.createdAt-b.timestamp);
+        if(diff<=12*60*1000 && diff<bestDiff){best=b;bestDiff=diff;}
+      }
+      if(!best)continue;
+      const r=best.review||(best.review={category:null,sub:null,matchupIssues:[],note:'',updatedAt:null});
+      if(!r.category){r.category=q.category;r.sub=q.sub||null;r.updatedAt=Date.now();r.sourceQuickId=q.id;q.linkedBattleId=best.id;used.add(best.id);linked++;}
+    }
+    return linked;
+  }
+
+  function parseBuckler(text){
+    const lines=text.split(/\r?\n/).map(v=>v.trim()).filter(Boolean);
+    const dateIdx=[];
+    lines.forEach((v,i)=>{if(/^\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}$/.test(v))dateIdx.push(i);});
+    const rows=[];
+    for(let di=0;di<dateIdx.length;di++){
+      const i=dateIdx[di];
+      if(i<2 || i+3>=lines.length) continue;
+      const p1={platform:lines[i-2],name:lines[i-1]};
+      const p2={platform:lines[i+1],name:lines[i+2]};
+      const nextDate = dateIdx[di+1];
+      const end = nextDate!==undefined ? Math.max(i+3,nextDate-2) : lines.length;
+      const seg=lines.slice(i+3,end);
+      const mrPos=[]; seg.forEach((v,j)=>{if(/^\d+MR$/.test(v))mrPos.push(j);});
+      const resPos=[]; seg.forEach((v,j)=>{if(v==='WIN'||v==='LOSE')resPos.push(j);});
+      if(mrPos.length<2 || resPos.length<2) continue;
+      const m1=mrPos[0], m2=mrPos[1];
+      const char1=seg[m1+1];
+      const char2=seg[m2-1];
+      if(!char1||!char2) continue;
+      p1.mr=parseInt(seg[m1],10); p2.mr=parseInt(seg[m2],10);
+      p1.char=canonicalChar(char1); p2.char=canonicalChar(char2);
+      p1.result=seg[resPos[0]]; p2.result=seg[resPos[1]];
+      rows.push({timestampText:lines[i],timestamp:parseDateText(lines[i]),p1,p2,sourceOrder:rows.length});
+    }
+    return rows;
+  }
+
+  function detectPlayerName(rows){
+    const counts={}; rows.forEach(r=>{counts[r.p1.name]=(counts[r.p1.name]||0)+1;counts[r.p2.name]=(counts[r.p2.name]||0)+1;});
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+  }
+
+  function normalizeRows(rows, playerName, currentMr, batchId){
+    return rows.map((r,idx)=>{
+      const side = r.p1.name===playerName ? 'p1' : r.p2.name===playerName ? 'p2' : null;
+      if(!side) return null;
+      const self=r[side], opp=r[side==='p1'?'p2':'p1'];
+      const key=[r.timestampText,r.p1.name,r.p2.name,r.p1.char,r.p2.char,r.p1.mr,r.p2.mr].join('|');
+      return {
+        id:'b_'+hash(key),timestamp:r.timestamp,timestampText:r.timestampText,
+        selfName:self.name,selfPlatform:self.platform,selfChar:self.char,selfMr:self.mr,result:self.result,
+        opponentName:opp.name,opponentPlatform:opp.platform,opponentChar:opp.char,opponentMr:opp.mr,
+        mrAfter:null,mrDelta:null,mrDeltaSource:null,
+        sourceBatchId:batchId,sourceOrder:idx,
+        review:{category:null,sub:null,matchupIssues:[],note:'',updatedAt:null,sourceQuickId:null}
+      };
+    }).filter(Boolean).map((b,idx,arr)=>{
+      if(idx===0 && Number.isFinite(currentMr) && currentMr>0){b.mrAfter=currentMr;b.mrDelta=currentMr-b.selfMr;b.mrDeltaSource='current';}
+      else if(idx>0){const nextMoreRecent=arr[idx-1];b.mrAfter=nextMoreRecent.selfMr;b.mrDelta=b.mrAfter-b.selfMr;b.mrDeltaSource='adjacent';}
+      return b;
+    });
+  }
+
+  function importBattles(){
+    const text=$('bucklerText').value.trim();
+    if(!text){showImport('ログを貼り付けてください。',true);return;}
+    let playerName=$('playerName').value.trim()||state.settings.playerName||'';
+    const currentMrVal=parseInt($('currentMr').value,10); const currentMr=Number.isFinite(currentMrVal)?currentMrVal:null;
+    const focus=$('currentFocus').value.trim();
+    const rows=parseBuckler(text);
+    if(!rows.length){showImport('試合を抽出できませんでした。BucklerのBATTLE LOGページをそのままコピーして貼り付けてください。',true);return;}
+    if(!playerName || !rows.some(r=>r.p1.name===playerName||r.p2.name===playerName)){
+      const detected=detectPlayerName(rows);
+      if(detected){playerName=detected;$('playerName').value=detected;}
+    }
+    if(!rows.some(r=>r.p1.name===playerName||r.p2.name===playerName)){
+      showImport(`自分のBuckler名「${esc(playerName)}」を試合内で見つけられませんでした。`,true);return;
+    }
+    state.settings.playerName=playerName; if(focus) state.settings.currentFocus=focus;
+    const batchId=nowId('imp');
+    const normalized=normalizeRows(rows,playerName,currentMr,batchId);
+    let added=0,merged=0; const newIds=[];
+    normalized.forEach(b=>{
+      const old=state.battles[b.id];
+      if(old){
+        // 新しい取込でMR差がより分かる場合だけ更新。レビューは絶対に保持。
+        state.battles[b.id]=Object.assign({},b,old,{mrAfter:b.mrAfter??old.mrAfter,mrDelta:b.mrDelta??old.mrDelta,mrDeltaSource:b.mrDeltaSource??old.mrDeltaSource,review:old.review||b.review});
+        merged++;
+      }else{state.battles[b.id]=b;added++;newIds.push(b.id);}
+    });
+    const candidateIds=normalized.map(b=>b.id);
+    const quickLinked=linkPendingQuickNotes(candidateIds);
+    const imp={id:batchId,importedAt:Date.now(),parsed:normalized.length,added,newIds,playerName,quickLinked};
+    state.imports.push(imp); state.latestImportId=batchId; saveState(); syncSettingsUI(); renderAll();
+    showImport(`${normalized.length}試合を解析：新規 ${added} / 既存 ${merged}。${quickLinked?`対戦直後メモ ${quickLinked}件を自動紐付け。`:''}${currentMr?`最新試合の現在MR ${currentMr} も反映。`:''}`,false);
+  }
+
+  function showImport(msg,isError){$('importResult').innerHTML=`<div class="notice ${isError?'error':''}">${msg}</div>`;}
+  function $(id){return document.getElementById(id);}
+  function getBattles(){return Object.values(state.battles).sort((a,b)=>b.timestamp-a.timestamp);}
+  function categoryLabel(code){return CATEGORIES.find(x=>x[0]===code)?.[1]||code||'';}
+  function subLabel(cat,code){return SUB_OPTIONS[cat]?.find(x=>x[0]===code)?.[1]||code||'';}
+  function isReviewed(b){return !!(b.review && (b.review.category || b.review.note || (b.review.matchupIssues||[]).length));}
+
+  function renderQuickStats(){
+    const bs=getBattles(); const wins=bs.filter(b=>b.result==='WIN').length; const reviewed=bs.filter(isReviewed).length;
+    const latest=bs[0]; const mr=latest ? (latest.mrAfter??latest.selfMr) : null;
+    $('quickStats').innerHTML=[
+      ['保存試合',bs.length],['勝率',bs.length?`${(wins/bs.length*100).toFixed(1)}%`:'-'],['レビュー済み',reviewed],['未レビュー',bs.length-reviewed],['最新MR',mr??'-']
+    ].map(([l,v])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+  }
+
+  function renderHistoryStats(){
+    const bs=getBattles(); const wins=bs.filter(b=>b.result==='WIN').length; const latest=bs[0], oldest=bs[bs.length-1];
+    const latestMr=latest?(latest.mrAfter??latest.selfMr):null; const oldestMr=oldest?.selfMr??null;
+    const diff=(latestMr!=null&&oldestMr!=null)?latestMr-oldestMr:null;
+    $('historyStats').innerHTML=[
+      ['保存試合',bs.length],['W-L',`${wins}-${bs.length-wins}`],['勝率',bs.length?`${(wins/bs.length*100).toFixed(2)}%`:'-'],['MR',latestMr??'-'],['保存範囲MR差',diff==null?'-':`${diff>=0?'+':''}${diff}`]
+    ].map(([l,v])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+  }
+
+  function populateCharFilter(){
+    const current=$('charFilter').value; const chars=[...new Set(getBattles().map(b=>b.opponentChar))].sort((a,b)=>a.localeCompare(b,'ja'));
+    $('charFilter').innerHTML='<option value="">相手キャラ：すべて</option>'+chars.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if(chars.includes(current)) $('charFilter').value=current;
+  }
+
+  function groupBattlesByOpponent(bs){
+    const groups=[];let current=null;
+    bs.forEach(b=>{
+      const same=current && current.opponentName===b.opponentName && current.opponentChar===b.opponentChar && Math.abs(current.lastTs-b.timestamp)<=20*60*1000;
+      if(!same){current={opponentName:b.opponentName,opponentChar:b.opponentChar,battles:[],lastTs:b.timestamp};groups.push(current);}
+      current.battles.push(b);current.lastTs=b.timestamp;
+    });
+    return groups;
+  }
+
+  function renderBattles(){
+    let bs=getBattles(); const mode=$('reviewFilter').value, char=$('charFilter').value, limit=parseInt($('countFilter').value,10);
+    if(latestImportOnly && state.latestImportId){const ids=new Set(state.imports.find(i=>i.id===state.latestImportId)?.newIds||[]);bs=bs.filter(b=>ids.has(b.id));}
+    if(mode==='unreviewed') bs=bs.filter(b=>!isReviewed(b)); else if(mode==='lose') bs=bs.filter(b=>b.result==='LOSE'); else if(mode==='reviewed') bs=bs.filter(isReviewed);
+    if(char) bs=bs.filter(b=>b.opponentChar===char); bs=bs.slice(0,limit);
+    if(!bs.length){$('battleList').innerHTML='<div class="empty">対象の試合がありません。</div>';return;}
+    $('battleList').innerHTML=groupBattlesByOpponent(bs).map(renderEncounter).join('');
+  }
+
+  function renderEncounter(g){
+    const wins=g.battles.filter(b=>b.result==='WIN').length, losses=g.battles.length-wins;
+    const reviewed=g.battles.filter(isReviewed).length;
+    const times=g.battles.map(b=>esc(String(b.timestampText||'').slice(11)));
+    return `<section class="encounter">
+      <div class="encounter-head">
+        <div><div class="encounter-title">${esc(g.opponentName)} / ${esc(g.opponentChar)}</div><div class="encounter-meta">${g.battles.length}戦 ${wins}-${losses} / ${times[times.length-1]}〜${times[0]} / レビュー ${reviewed}/${g.battles.length}</div></div>
+        <button class="battle-toggle" data-toggle-encounter>各試合を表示/隠す</button>
+      </div>
+      <div class="encounter-battles">${g.battles.map(renderBattleCard).join('')}</div>
+    </section>`;
+  }
+
+  function renderBattleCard(b){
+    const r=b.review||{}; const delta=b.mrDelta==null?'<span class="delta unknown">MR差 未確定</span>':`<span class="delta ${b.mrDelta>=0?'plus':'minus'}">${b.mrDelta>=0?'+':''}${esc(b.mrDelta)}</span>`;
+    const choices=CATEGORIES.map(([code,label],idx)=>`<label class="choice"><input type="radio" name="cat_${esc(b.id)}" value="${code}" ${r.category===code?'checked':''} data-bid="${esc(b.id)}"><span>${idx+1}. ${esc(label)}</span></label>`).join('');
+    return `<article class="battle ${b.result==='WIN'?'win':'lose'}" data-battle="${esc(b.id)}">
+      <div class="battle-head">
+        <div class="battle-title"><strong>${esc(b.timestampText)}</strong><span class="result ${b.result==='WIN'?'win':'lose'}">${esc(b.result)}</span>${r.sourceQuickId?'<span class="quick-source">対戦直後メモ反映済み</span>':''}</div>
+        <div class="mr">自分 ${esc(b.selfMr)}MR → ${esc(b.mrAfter??'?')} ${delta} / 相手 ${esc(b.opponentMr)}MR</div>
+      </div>
+      <div class="battle-body">
+        <div class="question">この試合でいちばん困ったことは？ <span class="review-status">（1つ・未選択でもOK）</span></div>
+        <div class="radio-grid">${choices}</div>
+        ${renderDetail(b)}
+        <div class="memo-row"><button class="btn ghost memo-toggle" data-memo-toggle="${esc(b.id)}">＋ 任意メモ</button><textarea class="memo" data-memo="${esc(b.id)}" ${r.note?'':'hidden'} placeholder="例：中Pを押そうとすると全部COUNTER。差し返しを見ると飛び被弾。">${esc(r.note||'')}</textarea></div>
+      </div>
+    </article>`;
+  }
+
+  function renderDetail(b){
+    const r=b.review||{}; const cat=r.category;
+    if(!cat || (!SUB_OPTIONS[cat] && cat!=='matchup')) return '<div class="detail" hidden></div>';
+    if(cat==='matchup'){
+      const issues=MATCHUP_ISSUES[canonicalChar(b.opponentChar)]||[];
+      return `<div class="detail"><strong>${esc(b.opponentChar)}：困った技・連係（任意・複数可）</strong>
+        <div class="matchup-grid">${issues.map((x,i)=>`<label class="matchup-item"><input type="checkbox" data-matchup="${esc(b.id)}" value="${esc(x)}" ${(r.matchupIssues||[]).includes(x)?'checked':''}><span>${esc(x)}</span></label>`).join('') || '<span class="small">候補未登録。下のメモに自由記載してください。</span>'}</div>
+        <div class="small" style="margin-top:8px">候補にない場合は「任意メモ」にそのまま書けばOK。候補は対策の正解判定ではなく、思い出すためのタグです。</div>
+      </div>`;
+    }
+    const subs=SUB_OPTIONS[cat]||[];
+    return `<div class="detail"><strong>補足（任意）</strong><div class="subchoices" style="margin-top:8px">${subs.map(([code,label])=>`<label class="subchoice"><input type="radio" name="sub_${esc(b.id)}" data-sub="${esc(b.id)}" value="${code}" ${r.sub===code?'checked':''}><span>${esc(label)}</span></label>`).join('')}</div></div>`;
+  }
+
+  function saveReviewFromEvent(bid, updater){
+    const b=state.battles[bid]; if(!b)return; b.review=b.review||{category:null,sub:null,matchupIssues:[],note:'',updatedAt:null,sourceQuickId:null}; updater(b.review); b.review.updatedAt=Date.now(); saveState(); renderQuickStats(); renderHistoryStats();
+  }
+
+  function handleReviewChange(e){
+    const t=e.target;
+    if(t.matches('input[type=radio][data-bid]')){
+      const bid=t.dataset.bid; saveReviewFromEvent(bid,r=>{if(r.category!==t.value){r.sub=null;r.matchupIssues=[];}r.category=t.value;});
+      const card=t.closest('.battle'); const b=state.battles[bid]; card.querySelector('.detail').outerHTML=renderDetail(b); bindDynamicReviewEvents(card); renderSummaries();
+    }else if(t.matches('input[data-sub]')){
+      saveReviewFromEvent(t.dataset.sub,r=>r.sub=t.value); renderSummaries();
+    }else if(t.matches('input[data-matchup]')){
+      const bid=t.dataset.matchup; saveReviewFromEvent(bid,r=>{const vals=[...t.closest('.matchup-grid').querySelectorAll('input[data-matchup]:checked')].map(x=>x.value);r.matchupIssues=vals;}); renderSummaries();
+    }
+  }
+
+  function bindDynamicReviewEvents(root=document){
+    root.querySelectorAll('input[data-sub], input[data-matchup]').forEach(el=>{el.onchange=handleReviewChange;});
+  }
+
+  function bindBattleListEvents(){
+    $('battleList').onchange=handleReviewChange;
+    $('battleList').onclick=e=>{
+      const enc=e.target.closest('[data-toggle-encounter]');
+      if(enc){const body=enc.closest('.encounter').querySelector('.encounter-battles');body.hidden=!body.hidden;return;}
+      const btn=e.target.closest('[data-memo-toggle]'); if(!btn)return; const ta=[...$('battleList').querySelectorAll('[data-memo]')].find(x=>x.dataset.memo===btn.dataset.memoToggle); if(ta){ta.hidden=!ta.hidden;if(!ta.hidden)ta.focus();}
+    };
+    $('battleList').oninput=e=>{
+      const ta=e.target.closest('[data-memo]'); if(!ta)return; const bid=ta.dataset.memo; clearTimeout(ta._timer); ta._timer=setTimeout(()=>{saveReviewFromEvent(bid,r=>r.note=ta.value.trim());renderSummaries();},250);
+    };
+  }
+
+  function renderSummaries(){
+    const bs=getBattles(); const reviewed=bs.filter(isReviewed);
+    const catCounts={}; reviewed.forEach(b=>{if(b.review.category)catCounts[b.review.category]=(catCounts[b.review.category]||0)+1;});
+    const catRows=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]);
+    $('categorySummary').innerHTML=catRows.length?`<table class="summary-table"><tbody>${catRows.map(([c,n])=>`<tr><td>${esc(categoryLabel(c))}</td><td class="num">${n}試合</td></tr>`).join('')}</tbody></table>`:'<div class="empty">まだレビューがありません。</div>';
+    const byChar={};bs.forEach(b=>{const x=byChar[b.opponentChar]||(byChar[b.opponentChar]={n:0,w:0,issues:0});x.n++;if(b.result==='WIN')x.w++;if(isReviewed(b))x.issues++;});
+    const rows=Object.entries(byChar).sort((a,b)=>b[1].n-a[1].n);
+    $('matchupSummary').innerHTML=rows.length?`<table class="summary-table"><thead><tr><th>相手</th><th>戦績</th><th>勝率</th><th>レビュー</th></tr></thead><tbody>${rows.map(([c,x])=>`<tr><td>${esc(c)}</td><td>${x.w}-${x.n-x.w}</td><td>${(x.w/x.n*100).toFixed(1)}%</td><td>${x.issues}/${x.n}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">履歴がありません。</div>';
+  }
+
+  function drawMrChart(){
+    const canvas=$('mrChart'),ctx=canvas.getContext('2d'); const bs=getBattles().slice().reverse().filter(b=>Number.isFinite(b.selfMr));
+    const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0d1520';ctx.fillRect(0,0,w,h);
+    if(bs.length<2){ctx.fillStyle='#9fb0c5';ctx.font='14px sans-serif';ctx.fillText('MR履歴が2試合以上あると表示します。',24,40);return;}
+    const vals=bs.map(b=>b.selfMr); const min=Math.min(...vals),max=Math.max(...vals); const pad=36; const range=Math.max(1,max-min);
+    ctx.strokeStyle='#29394f';ctx.lineWidth=1;for(let i=0;i<5;i++){const y=pad+(h-pad*2)*i/4;ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-pad,y);ctx.stroke();const v=Math.round(max-range*i/4);ctx.fillStyle='#8da0b8';ctx.font='11px sans-serif';ctx.fillText(v,4,y+4);}
+    ctx.strokeStyle='#62d6cf';ctx.lineWidth=2;ctx.beginPath();bs.forEach((b,i)=>{const x=pad+(w-pad*2)*(i/(bs.length-1));const y=pad+(h-pad*2)*((max-b.selfMr)/range);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+    ctx.fillStyle='#62d6cf';[0,bs.length-1].forEach(i=>{const b=bs[i],x=pad+(w-pad*2)*(i/(bs.length-1)),y=pad+(h-pad*2)*((max-b.selfMr)/range);ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle='#aabbd0';ctx.font='11px sans-serif';ctx.fillText(fmtDate(bs[0].timestamp),pad,h-8);const endText=fmtDate(bs[bs.length-1].timestamp);ctx.fillText(endText,w-pad-110,h-8);
+  }
+
+  function getPromptBattles(){
+    const scope=$('promptScope').value; const bs=getBattles();
+    if(scope==='latestNew'){const ids=new Set(state.imports.find(i=>i.id===state.latestImportId)?.newIds||[]);const x=bs.filter(b=>ids.has(b.id));return x.length?x:bs.slice(0,10);}
+    if(scope==='last5reviewed') return bs.filter(isReviewed).slice(0,5);
+    if(scope==='last10reviewed') return bs.filter(isReviewed).slice(0,10);
+    return bs.slice(0,10);
+  }
+
+  function generatePrompt(){
+    const bs=getPromptBattles().slice().sort((a,b)=>a.timestamp-b.timestamp); if(!bs.length){$('promptOutput').value='保存試合がありません。';return;}
+    const reviewed=bs.filter(isReviewed), wins=bs.filter(b=>b.result==='WIN').length;
+    const startMr=bs[0].selfMr; const last=bs[bs.length-1]; const endMr=last.mrAfter??last.selfMr; const diff=endMr-startMr;
+    const catCounts={}; reviewed.forEach(b=>{if(b.review.category)catCounts[b.review.category]=(catCounts[b.review.category]||0)+1;});
+    const focus=state.settings.currentFocus||''; const mode=$('promptMode').value;
+    let out=[];
+    out.push('SF6ランクマの振り返りです。');
+    out.push('各試合につき、本人が「この試合でいちばん困った」と感じた項目を最大1つ記録しています。');
+    out.push('件数は被弾回数ではなく、その項目を選んだ試合数です。未選択の問題が発生しなかったとは限りません。');
+    out.push('記録だけから入力ミス・知識不足・反応速度などを断定せず、次に確認または改善する対象を1つに絞ってください。');
+    out.push('');
+    out.push(`使用キャラ：${last.selfChar}`);out.push(`期間：${bs[0].timestampText}〜${last.timestampText}`);out.push(`${bs.length}戦 ${wins}勝${bs.length-wins}敗 / 区間勝率 ${(wins/bs.length*100).toFixed(2)}%`);out.push(`MR：${startMr} → ${endMr}（${diff>=0?'+':''}${diff}）`);
+    if(focus) out.push(`前回の重点課題：${focus}`);
+    out.push('');out.push('本人が一番困った項目：');
+    const cs=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]); if(cs.length)cs.forEach(([c,n])=>out.push(`- ${categoryLabel(c)}：${n}試合`)); else out.push('- レビュー選択なし');
+    out.push('');out.push('試合別：');
+    bs.forEach((b,i)=>{
+      const r=b.review||{}; const d=b.mrDelta==null?'MR差不明':`${b.mrDelta>=0?'+':''}${b.mrDelta}MR`;
+      out.push(`${i+1}. ${b.timestampText} vs ${b.opponentChar} / ${b.result} / ${b.selfMr}MR / ${d}`);
+      if(r.category) out.push(`   主項目：${categoryLabel(r.category)}`); else out.push('   主項目：未選択');
+      if(r.sub) out.push(`   補足：${subLabel(r.category,r.sub)}`);
+      if((r.matchupIssues||[]).length) out.push(`   キャラ固有：${r.matchupIssues.join(' / ')}`);
+      if(r.note) out.push(`   メモ：${r.note}`);
+    });
+    out.push('');
+    if(mode==='matchup'){
+      out.push('依頼：キャラ固有の困りごとを優先して整理してください。');
+      out.push('1. 反復しているキャラ対項目');out.push('2. 知識不足か、知っているが実戦で出ない問題かを区別');out.push('3. 次のランクマで追加する対策は最大1つ');
+    }else if(mode==='compare'){
+      out.push('依頼：前回の重点課題と今回の記録を比較してください。');out.push('1. 前回課題がまだ主犯か');out.push('2. 今回新しく強く出た問題');out.push('3. 次の5試合で意識することを1つだけ');
+    }else{
+      out.push('依頼：今回もっとも改善価値が高そうな対象を1つだけ選んでください。');out.push('単純な最多項目だけで決めず、勝敗への影響・反復・以前からの課題を考慮してください。');out.push('次のランクマで意識することも1つだけにしてください。');
+    }
+    $('promptOutput').value=out.join('\n');
+  }
+
+  async function copyPrompt(){
+    const ta=$('promptOutput'); if(!ta.value)generatePrompt();
+    try{await navigator.clipboard.writeText(ta.value);$('copyStatus').textContent='コピーしました。';}
+    catch(e){ta.select();document.execCommand('copy');$('copyStatus').textContent='コピーしました。';}
+    setTimeout(()=>$('copyStatus').textContent='',1800);
+  }
+
+  function exportJson(){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`sf6-review-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href);
+  }
+  function importJson(file){
+    const fr=new FileReader();fr.onload=()=>{try{const d=JSON.parse(fr.result);if(!d||!d.battles)throw new Error('invalid');state=d;saveState();syncSettingsUI();renderAll();alert('バックアップを読み込みました。');}catch(e){alert('読み込みに失敗しました。');}};fr.readAsText(file);
+  }
+
+  function syncSettingsUI(){
+    $('playerName').value=state.settings.playerName||'';$('currentFocus').value=state.settings.currentFocus||'';$('settingsPlayerName').value=state.settings.playerName||'';$('settingsCurrentFocus').value=state.settings.currentFocus||'';
+  }
+  function saveSettings(){state.settings.playerName=$('settingsPlayerName').value.trim();state.settings.currentFocus=$('settingsCurrentFocus').value.trim();saveState();syncSettingsUI();alert('保存しました。');}
+
+  function renderAll(){renderQuickCapture();renderQuickStats();renderHistoryStats();populateCharFilter();renderBattles();renderSummaries();drawMrChart();}
+
+  function bind(){
+    $('quickButtons').onclick=e=>{const btn=e.target.closest('[data-quick-cat]');if(btn)addQuickNote(btn.dataset.quickCat);};
+    $('quickSub').onclick=e=>{const btn=e.target.closest('[data-quick-sub]');if(btn)setQuickSub(btn.dataset.qid,btn.dataset.quickSub);};
+    $('quickList').onclick=e=>{const btn=e.target.closest('[data-delete-quick]');if(btn)deleteQuick(btn.dataset.deleteQuick);};
+    $('undoQuickBtn').onclick=undoQuick;
+    document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('view-'+btn.dataset.view).classList.add('active');if(btn.dataset.view==='stats')setTimeout(drawMrChart,10);}));
+    $('parseBtn').onclick=importBattles;$('clearPasteBtn').onclick=()=>{$('bucklerText').value='';};
+    ['reviewFilter','charFilter','countFilter'].forEach(id=>$(id).onchange=()=>{latestImportOnly=false;renderBattles();});
+    $('jumpLatestImport').onclick=()=>{latestImportOnly=!latestImportOnly;renderBattles();$('jumpLatestImport').textContent=latestImportOnly?'全履歴フィルタへ戻る':'今回追加分だけ見る';};
+    $('generatePromptBtn').onclick=generatePrompt;$('copyPromptBtn').onclick=copyPrompt;
+    $('saveSettingsBtn').onclick=saveSettings;$('exportBtn').onclick=exportJson;$('importJsonInput').onchange=e=>{if(e.target.files[0])importJson(e.target.files[0]);e.target.value='';};
+    $('resetBtn').onclick=()=>{if(confirm('保存した全試合・レビューを削除します。JSONバックアップがなければ戻せません。')){state=DEFAULT_STATE();saveState();syncSettingsUI();renderAll();}};
+    bindBattleListEvents();
+  }
+
+  syncSettingsUI();bind();renderAll();generatePrompt();
+})();
+</script>
+</body>
+</html>
