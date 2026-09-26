@@ -332,6 +332,16 @@ canvas{width:100%;height:260px;background:#0d1520;border:1px solid var(--line);b
   let state = loadState();
   let latestImportOnly = false;
 
+  function sanitizeSavedMr(){
+    let changed=false;
+    Object.values(state.battles||{}).forEach(b=>{
+      if(b.mrDeltaSource!=='current' || !Number.isFinite(b.mrDelta)) return;
+      const invalid=(b.result==='WIN' && b.mrDelta<=0) || (b.result==='LOSE' && b.mrDelta>=0);
+      if(invalid){b.mrAfter=null;b.mrDelta=null;b.mrDeltaSource=null;changed=true;}
+    });
+    if(changed) saveState();
+  }
+
   function loadState(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -456,7 +466,11 @@ canvas{width:100%;height:260px;background:#0d1520;border:1px solid var(--line);b
         review:{category:null,sub:null,matchupIssues:[],note:'',updatedAt:null,sourceQuickId:null}
       };
     }).filter(Boolean).map((b,idx,arr)=>{
-      if(idx===0 && Number.isFinite(currentMr) && currentMr>0){b.mrAfter=currentMr;b.mrDelta=currentMr-b.selfMr;b.mrDeltaSource='current';}
+      if(idx===0 && Number.isFinite(currentMr) && currentMr>0){
+        const delta=currentMr-b.selfMr;
+        const directionOk=(b.result==='WIN' && delta>0) || (b.result==='LOSE' && delta<0);
+        if(directionOk){b.mrAfter=currentMr;b.mrDelta=delta;b.mrDeltaSource='current';}
+      }
       else if(idx>0){const nextMoreRecent=arr[idx-1];b.mrAfter=nextMoreRecent.selfMr;b.mrDelta=b.mrAfter-b.selfMr;b.mrDeltaSource='adjacent';}
       return b;
     });
@@ -493,7 +507,11 @@ canvas{width:100%;height:260px;background:#0d1520;border:1px solid var(--line);b
     const quickLinked=linkPendingQuickNotes(candidateIds);
     const imp={id:batchId,importedAt:Date.now(),parsed:normalized.length,added,newIds,playerName,quickLinked};
     state.imports.push(imp); state.latestImportId=batchId; saveState(); syncSettingsUI(); renderAll();
-    showImport(`${normalized.length}試合を解析：新規 ${added} / 既存 ${merged}。${quickLinked?`対戦直後メモ ${quickLinked}件を自動紐付け。`:''}${currentMr?`最新試合の現在MR ${currentMr} も反映。`:''}`,false);
+    const newest=normalized[0];
+    const currentMrApplied=!!(currentMr && newest && newest.mrDeltaSource==='current');
+    const currentMrIgnored=!!(currentMr && newest && !currentMrApplied);
+    showImport(`${normalized.length}試合を解析：新規 ${added} / 既存 ${merged}。${quickLinked?`対戦直後メモ ${quickLinked}件を自動紐付け。`:''}${currentMrApplied?`最新試合の現在MR ${currentMr} も反映。`:''}${currentMrIgnored?`現在MR ${currentMr} は最新試合の勝敗と増減方向が矛盾したため採用しませんでした。`:''}`,false);
+    $('currentMr').value='';
   }
 
   function showImport(msg,isError){$('importResult').innerHTML=`<div class="notice ${isError?'error':''}">${msg}</div>`;}
@@ -723,7 +741,7 @@ canvas{width:100%;height:260px;background:#0d1520;border:1px solid var(--line);b
     bindBattleListEvents();
   }
 
-  syncSettingsUI();bind();renderAll();generatePrompt();
+  sanitizeSavedMr();syncSettingsUI();bind();renderAll();generatePrompt();
 })();
 </script>
 </body>
